@@ -1,0 +1,66 @@
+{
+  "id": "003",
+  "claim": "A circuit breaker wrapping only the Service-B call (retries disabled) reduces both downstream load and client-visible error above Experiment 002's collapse boundary (RPS 14-18): amplification drops from ~1.0x to 0.57-0.76x, and client-visible error rate drops by up to 61 percentage points (RPS16: 99.9% to 58.9%), with zero false-positive trips at RPS12 (below the boundary). Every half-open probe succeeded (100% probe success rate at every saturated RPS), confirming the collapse is a queueing/capacity effect, not a hard failure -- consistent with Experiment 002's read.",
+  "scope": {
+    "experiment_id": "003",
+    "fixed_params": {
+      "injected_latency_ms": 400,
+      "retry_policy": "none"
+    },
+    "swept": {
+      "variable": "breaker_enabled",
+      "tested_values": [
+        false,
+        true
+      ]
+    }
+  },
+  "evidence": {
+    "grade": "research",
+    "run_ids": {
+      "breakerFalse_rps12": [
+        "20260728T133119Z_rps12_lat400_none"
+      ],
+      "breakerFalse_rps14": [
+        "20260728T133339Z_rps14_lat400_none"
+      ],
+      "breakerFalse_rps16": [
+        "20260728T133601Z_rps16_lat400_none"
+      ],
+      "breakerFalse_rps18": [
+        "20260728T133822Z_rps18_lat400_none"
+      ],
+      "breakerTrue_rps12": [
+        "20260728T134043Z_rps12_lat400_none_breaker-on"
+      ],
+      "breakerTrue_rps14": [
+        "20260728T134309Z_rps14_lat400_none_breaker-on"
+      ],
+      "breakerTrue_rps16": [
+        "20260728T134531Z_rps16_lat400_none_breaker-on"
+      ],
+      "breakerTrue_rps18": [
+        "20260728T134751Z_rps18_lat400_none_breaker-on"
+      ]
+    },
+    "n_per_condition": 1,
+    "variance_reported": false,
+    "analysis_ref": "experiments/003-circuit-breaker/summary.csv"
+  },
+  "validity_checks": [
+    {
+      "name": "no_false_positive_at_rps12",
+      "passed": true,
+      "note": "breaker_open_count=0, error_rate=0.0% at RPS12 with breaker on -- identical to breaker-off"
+    },
+    {
+      "name": "probe_success_rate_100pct",
+      "passed": true,
+      "note": "100% probe success at every above-boundary RPS (14/16/18) -- no equivalent check exists in any admission-control Finding, since half-open probing is a breaker-specific concept with nothing resembling it in EWMA-based admission control"
+    }
+  ],
+  "status": "closed",
+  "narrative_ref": "experiments/003-circuit-breaker/README.md",
+  "supersedes": null,
+  "refines": null
+}

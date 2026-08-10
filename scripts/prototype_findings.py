@@ -1,18 +1,28 @@
 """Construct real Finding instances (slimybug/finding.py, schema per RFC
 0001 SS3) from Experiment 011 and its three reference-grade validations
-(R001-R003), using each one's already-published README claim plus its
-actual recorded runs, and write each as finding.json colocated with its
-experiment/reference directory -- the storage convention `slimybug findings
-list/show` (scripts/findings.py) reads from.
+(R001-R003), plus Experiment 003 (circuit breaker), using each one's
+already-published README claim plus its actual recorded runs, and write
+each as finding.json colocated with its experiment/reference directory --
+the storage convention `slimybug findings list/show` (scripts/findings.py)
+reads from.
 
 Originated as a schema-validation exercise (RFC 0001 SS9, independent
 track item 5) -- the schema held up against real evidence; see RFC 0001
 SS3's "Grounded against real evidence" note and SS10 Tier 2 item 5 for
-what that surfaced. Re-running this script is idempotent: it always
-reconstructs the same four Findings from the same source data and
-overwrites their finding.json in place -- safe because these four aren't
-frozen yet (nothing currently reads finding.json as closed evidence); the
-same would NOT be true post-freeze, per the schema's own immutability rule.
+what that surfaced. Extended to cover 003 as RFC 0001 Tier 1 item 2's
+"second mechanism template" grounding step -- 003 predates the Finding
+schema and the Protocol/Adapter split entirely (it ran under the old
+monolithic runner), so constructing a Finding for it retroactively tests
+whether the schema holds for a structurally different mechanism (a
+discrete open/closed breaker, not a continuous EWMA signal) without
+requiring any new runs or Runner changes. See its validity_checks below
+for what that surfaced concretely.
+
+Re-running this script is idempotent: it always reconstructs the same
+Findings from the same source data and overwrites their finding.json in
+place -- safe because none of these are frozen yet (nothing currently
+reads finding.json as closed evidence); the same would NOT be true
+post-freeze, per the schema's own immutability rule.
 
 Usage:
   python scripts/prototype_findings.py
@@ -236,6 +246,61 @@ findings.append(
         status="closed",
         narrative_ref="reference/R003-half-life-sensitivity-validation/README.md",
         refines="011",
+    )
+)
+
+
+# --------------------------------------------------------------- 003 -----
+exp003 = load_experiment("003")
+dir_paths["003"] = exp003.dir_path
+runs003 = load_runs(exp003.runs_dir)
+
+findings.append(
+    Finding(
+        id="003",
+        claim=(
+            "A circuit breaker wrapping only the Service-B call (retries "
+            "disabled) reduces both downstream load and client-visible "
+            "error above Experiment 002's collapse boundary (RPS 14-18): "
+            "amplification drops from ~1.0x to 0.57-0.76x, and "
+            "client-visible error rate drops by up to 61 percentage "
+            "points (RPS16: 99.9% to 58.9%), with zero false-positive "
+            "trips at RPS12 (below the boundary). Every half-open probe "
+            "succeeded (100% probe success rate at every saturated RPS), "
+            "confirming the collapse is a queueing/capacity effect, not "
+            "a hard failure -- consistent with Experiment 002's read."
+        ),
+        scope=Scope(
+            experiment_id="003",
+            fixed_params=dict(exp003.metadata.fixed_params),
+            swept=Swept(variable="breaker_enabled", tested_values=[False, True]),
+        ),
+        evidence=Evidence(
+            grade="research",
+            run_ids=run_ids_by(runs003, lambda r: f"breaker{r['breaker_enabled']}_rps{r['rps']}"),
+            n_per_condition=1,
+            variance_reported=False,
+            analysis_ref="experiments/003-circuit-breaker/summary.csv",
+        ),
+        validity_checks=[
+            ValidityCheck(
+                name="no_false_positive_at_rps12",
+                passed=True,
+                note="breaker_open_count=0, error_rate=0.0% at RPS12 with breaker on -- identical to breaker-off",
+            ),
+            ValidityCheck(
+                name="probe_success_rate_100pct",
+                passed=True,
+                note=(
+                    "100% probe success at every above-boundary RPS (14/16/18) -- no "
+                    "equivalent check exists in any admission-control Finding, since "
+                    "half-open probing is a breaker-specific concept with nothing "
+                    "resembling it in EWMA-based admission control"
+                ),
+            ),
+        ],
+        status="closed",
+        narrative_ref="experiments/003-circuit-breaker/README.md",
     )
 )
 
