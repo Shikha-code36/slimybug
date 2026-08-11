@@ -48,6 +48,7 @@ services:
       RETRY_BACKOFF_MIN_MS: "50"
       RETRY_BACKOFF_MAX_MS: "100"
       BREAKER_ENABLED: "${BREAKER_ENABLED:-false}"
+      BREAKER_WINDOW_SIZE: "${BREAKER_WINDOW_SIZE:-20}"
     ports:
       - "8000:8000"
     depends_on:

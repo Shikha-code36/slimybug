@@ -78,6 +78,7 @@ def set_toxic_latency(latency_ms: int) -> dict:
 def set_experiment_config(
     retry_policy: str,
     breaker_enabled: bool,
+    breaker_window_size: int = 20,
     enable_arrival_trace: bool = False,
     pool_size: int = DEFAULT_POOL_SIZE,
     admission_control_enabled: bool = False,
@@ -108,6 +109,7 @@ def set_experiment_config(
     if (
         current_a.get("retry_policy") == retry_policy
         and current_a.get("breaker_enabled") == breaker_enabled
+        and current_a.get("breaker_window_size") == breaker_window_size
         and current_b_trace.get("enabled") == enable_arrival_trace
         and current_b.get("pool_max_size") == pool_size
         and current_b.get("admission_control_enabled") == admission_control_enabled
@@ -122,6 +124,7 @@ def set_experiment_config(
     (REPO_ROOT / ".env").write_text(
         f"RETRY_POLICY={retry_policy}\n"
         f"BREAKER_ENABLED={'true' if breaker_enabled else 'false'}\n"
+        f"BREAKER_WINDOW_SIZE={breaker_window_size}\n"
         f"ENABLE_ARRIVAL_TRACE={'true' if enable_arrival_trace else 'false'}\n"
         f"POOL_MAX_SIZE={pool_size}\n"
         f"ADMISSION_CONTROL_ENABLED={'true' if admission_control_enabled else 'false'}\n"
@@ -393,6 +396,7 @@ class ReferenceAdapter(Protocol):
         {
             "retry_policy",
             "breaker_enabled",
+            "breaker_window_size",
             "enable_arrival_trace",
             "pool_size",
             "admission_control_enabled",
@@ -422,6 +426,7 @@ class ReferenceAdapter(Protocol):
         set_experiment_config(
             retry_policy=params.get("retry_policy", "none"),
             breaker_enabled=params.get("breaker_enabled", False),
+            breaker_window_size=params.get("breaker_window_size", 20),
             enable_arrival_trace=params.get("enable_arrival_trace", False),
             pool_size=params.get("pool_size", DEFAULT_POOL_SIZE),
             admission_control_enabled=params.get("admission_control_enabled", False),
@@ -472,11 +477,13 @@ class ReferenceAdapter(Protocol):
         latency_ms = config["latency_ms"]
         retry_policy = config.get("retry_policy", "none")
         breaker_enabled = config.get("breaker_enabled", False)
+        breaker_window_size = config.get("breaker_window_size", 20)
         pool_size = config.get("pool_size", DEFAULT_POOL_SIZE)
         admission_control_enabled = config.get("admission_control_enabled", False)
         admission_control_mode = config.get("admission_control_mode", "instantaneous")
 
         breaker_suffix = "_breaker-on" if breaker_enabled else ""
+        window_suffix = f"_win{breaker_window_size}" if breaker_enabled and breaker_window_size != 20 else ""
         pool_suffix = f"_pool{pool_size}" if pool_size != DEFAULT_POOL_SIZE else ""
         admission_suffix = "_admission-on" if admission_control_enabled else ""
         mode_suffix = (
@@ -484,4 +491,7 @@ class ReferenceAdapter(Protocol):
             if admission_control_enabled and admission_control_mode in ("ewma", "graduated", "bounded_grace")
             else ""
         )
-        return f"_rps{rps}_lat{latency_ms}_{retry_policy}{breaker_suffix}{pool_suffix}{admission_suffix}{mode_suffix}"
+        return (
+            f"_rps{rps}_lat{latency_ms}_{retry_policy}{breaker_suffix}{window_suffix}"
+            f"{pool_suffix}{admission_suffix}{mode_suffix}"
+        )

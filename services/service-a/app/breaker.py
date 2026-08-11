@@ -1,7 +1,8 @@
 import asyncio
+import os
 import time
 
-WINDOW_SIZE = 20
+WINDOW_SIZE = int(os.environ.get("BREAKER_WINDOW_SIZE", "20"))
 FAILURE_RATE_THRESHOLD = 0.5
 COOLDOWN_SECONDS = 2.0
 

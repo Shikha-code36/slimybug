@@ -391,6 +391,7 @@ class Runner:
             "injected_latency_ms": proxy_state.get("configured_latency_ms"),
             "retry_policy": config.get("retry_policy", "none"),
             "breaker_enabled": config.get("breaker_enabled", False),
+            "breaker_window_size": config.get("breaker_window_size", 20),
             "enable_arrival_trace": config.get("enable_arrival_trace", False),
             "admission_control_enabled": b_config.get("admission_control_enabled"),
             "admission_control_mode": b_config.get("admission_control_mode"),

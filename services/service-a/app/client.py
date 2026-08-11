@@ -1,5 +1,7 @@
 import os
 
+from .breaker import WINDOW_SIZE as BREAKER_WINDOW_SIZE
+
 SERVICE_B_URL = os.environ.get("SERVICE_B_URL", "http://service-b:8000/work")
 
 # Per-attempt timeout for the call to Service B.
@@ -37,4 +39,5 @@ def client_config() -> dict:
         "retry_backoff_max_ms": RETRY_BACKOFF_MAX_MS,
         "max_attempts": MAX_ATTEMPTS,
         "breaker_enabled": BREAKER_ENABLED,
+        "breaker_window_size": BREAKER_WINDOW_SIZE,
     }
