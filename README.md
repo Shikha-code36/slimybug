@@ -32,6 +32,7 @@ the request path is real.
 | [009 — bounded admission deferral](experiments/009-bounded-grace-period/README.md) | closed | A single 20ms bounded postponement of a provisional reject rescues 77% of contested requests near the collapse boundary (RPS 14: 16.7%→13.1% error), but that benefit collapses to near-zero further into sustained overload (RPS 16-18) — the value of an arbitration mechanism depends on where the system sits relative to the collapse boundary, at a precisely quantified latency cost (~1 grace interval, paid by rescued and rejected requests alike). |
 | [010 — RPS16's bimodal rescue rate](experiments/010-rps16-bimodal-mechanism/README.md) | closed | Time-resolved tracing (new `t_ns` instrumentation) explains the bimodal variance R002 found at RPS16: it's not two discrete regimes but a rare, self-locking connection-pool saturation event. Most runs show the pool flickering in and out of capacity in short streaks (3-5 decisions, self-resolving); occasionally a run's pool saturates once, early, and never recovers for the rest of the run — one continuous 2000+ decision streak instead of 150+ short ones. Consistent with RPS16 sitting close enough to critical pool utilization for timing jitter to occasionally tip a run into a self-reinforcing saturated state. |
 | [011 — EWMA half-life sensitivity sweep](experiments/011-half-life-sensitivity/README.md) | closed | Sweeping the EWMA admission signal's half-life (0.06s–4.0s, log-spaced) at RPS 16 shows error rate rising smoothly and continuously from instantaneous-like (23–26%) to off-like (99.93%, exactly matching no admission control) — no sharp cliff between any adjacent pair of half-lives. The steepest region sits between 0.25s and 1.0s, between the interarrival timescale and the measured request-service-time. Pool timeouts appear and grow monotonically with half-life (0→316), the same mechanism Experiment 007 found, now shown to scale continuously with the degree of signal lag rather than being specific to one tested value. |
+| [012 — circuit breaker window-size sensitivity sweep](experiments/012-breaker-window-sensitivity/README.md) | closed | Sweeping the breaker's sliding-window size (5–80 requests) at RPS 16 shows amplification (downstream load reaching Service B) rising cleanly and monotonically (0.584→0.774) as the window grows and reacts more slowly — but client-visible error rate does not move monotonically at single-run resolution, leaving continuity vs. a cliff unresolved without replication. RPS 12 stayed at exactly 0% error for every window size, no false positives anywhere in the sweep. |
 
 ## Reference-grade evidence
 
@@ -79,7 +80,7 @@ python scripts/analyze_results.py 005 --csv
 via the shared `Runner`, writing artifacts to
 `experiments/<id>-<slug>/runs/<run_id>/`:
 
-- `metadata.json` — run configuration (rps, injected latency, retry policy, breaker enabled, pool size, timeout)
+- `metadata.json` — run configuration (rps, injected latency, retry policy, breaker enabled/window size, pool size, timeout)
 - `results.json` — load generator summary plus `service_a`/`service_b`/`breaker`
   metric summaries and the derived `amplification_factor` / `retry_rate` /
   `retry_success_rate` / `probe_success_rate`
