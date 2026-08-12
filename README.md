@@ -17,6 +17,25 @@ bounded connection pool and is the one instrumented behind Toxiproxy's
 injected network latency, on a real PostgreSQL database. Every component in
 the request path is real.
 
+## Quickstart
+
+Prerequisites: Docker with Compose, and Python 3 (the host-side scripts use
+only the standard library — no `pip install` needed). k6 runs inside Docker
+via `docker compose run loadgen`, so no separate k6 install is required.
+
+```
+git clone <this repo> && cd slimybug
+docker compose up -d --build postgres toxiproxy toxiproxy-init service-b service-a
+curl http://localhost:8000/healthz   # wait for this to return 200
+python scripts/run_experiment.py 005
+python scripts/analyze_results.py 005 --csv
+```
+
+That runs Experiment 005 end to end and writes results to
+`experiments/005-connection-pool-capacity/`. See "Running the stack" and
+"Running an experiment" below for details on what each step does and what
+the artifacts contain.
+
 ## Current experiments
 
 | Experiment | Status | Key finding |
